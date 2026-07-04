@@ -1,101 +1,102 @@
-# 🎯 Task Manager — Claude Code Skill
+# 🎯 Task Manager — Claude Code 技能
 
-A lightweight task management protocol for **Claude Code**, built on the native `TaskCreate` / `TaskUpdate` / `TaskList` / `TaskGet` tools.
+基于 Claude Code 原生 `TaskCreate` / `TaskUpdate` / `TaskList` / `TaskGet` 工具的**轻量任务管理协议**。
 
 ```
-~~📦 Phase 1: Research ✅~~
-  ~~🔍 Discovery complete ✅~~
-  ~~📝 Documentation done ✅~~
-  🛠️ Phase 2: Implementation 🟡 in progress
-    1. Core logic ← working on it
-    2. Tests ⏳ blocked by #1
-    3. Deploy ⏳
+~~📦 第一阶段：调研 ✅~~
+  ~~🔍 信息收集完成 ✅~~
+  ~~📝 文档输出完成 ✅~~
+  🛠️ 第二阶段：实现 🟡 进行中
+    1. 核心逻辑 ← 正在写
+    2. 测试 ⏳ 被 #1 阻塞
+    3. 部署 ⏳ 待开始
 ```
 
-## ✨ Features
+## ✨ 功能特点
 
-- **Multi-step tracking** — break any complex task into atomic steps
-- **Dependency chains** — `addBlockedBy` ensures correct execution order
-- **Discoveries on the fly** — recording important findings as they happen, not after
-- **Completion metadata** — every `completed` carries summary, files, timestamp
-- **Visual progress** — strikethrough + emoji progress bars in responses
-- **Parent-child hierarchy** — visual nesting via naming convention (no system dependency)
+- **多步骤追踪** — 把复杂任务拆成原子步骤，一目了然
+- **依赖链** — `addBlockedBy` 确保执行顺序不乱
+- **发现即记录** — 过程中发现的重要信息即时存档，不等做完再补
+- **完成元数据** — 每次 `completed` 都附带总结、文件列表、时间戳
+- **视觉进度** — 回复中用删除线 + emoji 展示层级进度
+- **父子层级** — 命名缩进惯例实现视觉嵌套，系统不依赖父任务
 
-## 📦 Installation
+## 📦 安装
 
 ```bash
-# Clone into your Claude Code skills directory
+# 克隆到 Claude Code 技能目录
 cd .claude/skills/
 git clone https://github.com/misterzeke/task-manager-skill.git task-manager
 
-# Or just copy the SKILL.md manually
+# 或者手动下载 SKILL.md
 mkdir -p .claude/skills/task-manager
-# Download SKILL.md into that folder
+# 把 SKILL.md 放进该目录
 ```
 
-Then reference it in your `CLAUDE.md`:
+然后在 `CLAUDE.md` 中引用：
 
 ```markdown
-### Task Management
-For tasks with 3+ steps, load task-manager skill first.
-See `.claude/skills/task-manager/SKILL.md` for the full protocol.
+### 任务管理
+3 步以上的任务先用 TaskCreate 建任务列表，建之前加载 task-manager skill。
+参见 `.claude/skills/task-manager/SKILL.md`。
 ```
 
-## 🚀 Usage
+## 🚀 使用方式
 
-The skill auto-activates when you say things like:
-- "Create a task list"
-- "Let's break this into steps"
-- Any multi-step workflow with 3+ steps
+技能会在你说以下内容时自动触发：
+- "建任务列表"
+- "分成几步来做"
+- 任何 3 步以上的多步骤任务
 
-Or invoke it manually: `/task-manager`
+也可以手动调用：`/task-manager`
 
-### Quick Start
+### 快速开始
 
 ```javascript
-// 1. Create tasks
-TaskCreate({ subject: '📦 Project', activeForm: 'Planning' })
-TaskCreate({ subject: '  🅰️ Step 1', activeForm: 'Working on A' })
-TaskCreate({ subject: '  🅱️ Step 2', activeForm: 'Working on B' })
+// 1. 建任务
+TaskCreate({ subject: '📦 项目', activeForm: '规划中' })
+TaskCreate({ subject: '  🅰️ 第一步', activeForm: '正在做A' })
+TaskCreate({ subject: '  🅱️ 第二步', activeForm: '正在做B' })
 
-// 2. Set internal dependencies (sibling tasks only, NOT parent)
+// 2. 设同级依赖（不依赖父任务）
 TaskUpdate({ taskId: '2', addBlockedBy: ['1'] })
 
-// 3. Complete with metadata
+// 3. 带元数据完成
 TaskUpdate({
   taskId: '1',
   status: 'completed',
   metadata: {
-    summary: 'Research complete',
+    summary: '调研完成',
     filesModified: ['src/main.ts'],
     completedAt: new Date().toISOString(),
   },
 })
 ```
 
-## 📐 Hierarchy Convention
+## 📐 层级惯例
 
-| Level | Prefix | Example |
-|:-----:|:-------|:--------|
-| 1️⃣ Parent | no indent | `📦 Project` |
-| 2️⃣ Child | 2 spaces | `  🅰️ Module` |
-| 3️⃣ Grandchild | 4 spaces | `    1. Task` |
+| 层级 | 缩进 | 示例 |
+|:----:|:----:|:-----|
+| 1️⃣ 父级 | 无缩进 | `📦 项目` |
+| 2️⃣ 子级 | 2 空格 | `  🅰️ 模块` |
+| 3️⃣ 孙级 | 4 空格 | `    1. 细项` |
 
-**Key rule:** Parent tasks stay `in_progress` until ALL children are done. Only then mark parent `completed` — keeps system state and visual strikethrough in sync.
+**核心规则：** 父任务全程保持 `in_progress`，等所有子任务做完才标 `completed`——系统和视觉同步对齐。
 
-## 📋 Core Disciplines
+## 📋 核心纪律
 
-1. ✅ **Always complete with metadata** — summary + filesModified + completedAt
-2. ✅ **Record discoveries immediately** — don't wait until the end
-3. ✅ **Check TaskList after each completion** — find newly unblocked tasks
-4. ✅ **Parent = last to complete** — all children done before parent closes
-5. ✅ **Visual strikethrough in replies** — gives that satisfying "checked off" feeling
+1. ✅ **完成必带元数据** — summary + filesModified + completedAt
+2. ✅ **发现即记录** — 不等做完再补，即时写入 metadata
+3. ✅ **做完查解锁** — 每完成一步调 TaskList() 看有没有解锁新任务
+4. ✅ **父任务最后完成** — 所有子任务做完才关父任务
+5. ✅ **视觉删除线标注** — 每次推进在回复里用删除线汇报进度
 
-## 🔗 Related
+## 🔗 参考
 
-- Built on Claude Code 2.1.16+ native task tools
-- Inspired by [oimiragieo/agent-studio](https://github.com/oimiragieo/agent-studio) (task-management-protocol) and [yonatangross/orchestkit](https://github.com/yonatangross/orchestkit) (task-dependency-patterns)
+- 基于 Claude Code 2.1.16+ 原生 Task 工具
+- 灵感来自 [oimiragieo/agent-studio](https://github.com/oimiragieo/agent-studio) 的 task-management-protocol
+- 和 [yonatangross/orchestkit](https://github.com/yonatangross/orchestkit) 的 task-dependency-patterns
 
-## 📄 License
+## 📄 许可证
 
-MIT — free to use, modify, and share.
+MIT — 自由使用、修改、分享。
