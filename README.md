@@ -1,102 +1,110 @@
-# 🎯 Task Manager — Claude Code 技能
+# 🎯 Task Manager — 做完每件事，都值得划掉它
 
-基于 Claude Code 原生 `TaskCreate` / `TaskUpdate` / `TaskList` / `TaskGet` 工具的**轻量任务管理协议**。
+> *子任务完成了就划掉——那种"打勾✓"的爽感，不应该是 TODO 列表才有的事。*
+
+---
+
+## 这是干嘛的
+
+你是不是也这样——
+
+吭哧吭哧做了半天，超超问你"做到哪了"，你才想起来去翻任务列表。  
+或者任务拆了七八步，做着做着就忘了哪步做了哪步没做。  
+更惨的是：父任务还标着 `in_progress`，但其实子任务都完了，你只是忘了关。
+
+**Task Manager 就是来解决这个的。**
+
+它不发明新东西——就用 Claude Code 自带的 TaskCreate/TaskUpdate/TaskList，给它套一层顺手好用的规矩：
+
+- 任务拆成父子层级，缩进一看就知道谁是谁
+- 做完了在对话里顺手划掉 ~~像这样~~，超超一眼就知道进度
+- 父任务不解锁子任务（系统不依赖父级），子任务全做完才关父任务——系统和视觉，不打架
+- 完成时顺手带一句"改了哪几个文件、做了什么"，下次回头看不用靠猜
+
+---
+
+## 用起来长什么样
 
 ```
-~~📦 第一阶段：调研 ✅~~
-  ~~🔍 信息收集完成 ✅~~
-  ~~📝 文档输出完成 ✅~~
-  🛠️ 第二阶段：实现 🟡 进行中
-    1. 核心逻辑 ← 正在写
-    2. 测试 ⏳ 被 #1 阻塞
-    3. 部署 ⏳ 待开始
+📦 整理照片 ← 进行中，子任务还没完，不划
+  ~~🅰️ 2024年归档 ✅~~    ← 做完了，划掉
+  🅱️ 2025年归档 🟡 正在处理
+  🅲 2026年归档 ⏳ 等前面做完
 ```
 
-## ✨ 功能特点
+全部做完后：
 
-- **多步骤追踪** — 把复杂任务拆成原子步骤，一目了然
-- **依赖链** — `addBlockedBy` 确保执行顺序不乱
-- **发现即记录** — 过程中发现的重要信息即时存档，不等做完再补
-- **完成元数据** — 每次 `completed` 都附带总结、文件列表、时间戳
-- **视觉进度** — 回复中用删除线 + emoji 展示层级进度
-- **父子层级** — 命名缩进惯例实现视觉嵌套，系统不依赖父任务
+```
+~~📦 整理照片 ✅~~ ← 所有子任务完成！父任务才划
+  ~~🅰️ 2024年归档 ✅~~
+  ~~🅱️ 2025年归档 ✅~~
+  ~~🅲 2026年归档 ✅~~
+```
 
-## 📦 安装
+那种"咔嚓一下划掉一整行"的感觉——老实说，很爽 😋
+
+---
+
+## 怎么装
 
 ```bash
-# 克隆到 Claude Code 技能目录
 cd .claude/skills/
 git clone https://github.com/misterzeke/task-manager-skill.git task-manager
-
-# 或者手动下载 SKILL.md
-mkdir -p .claude/skills/task-manager
-# 把 SKILL.md 放进该目录
 ```
 
-然后在 `CLAUDE.md` 中引用：
+然后在 `CLAUDE.md` 里加一句引用（或者贴到你的 skill 规则里）：
 
 ```markdown
-### 任务管理
 3 步以上的任务先用 TaskCreate 建任务列表，建之前加载 task-manager skill。
-参见 `.claude/skills/task-manager/SKILL.md`。
 ```
 
-## 🚀 使用方式
+搞定了。
 
-技能会在你说以下内容时自动触发：
-- "建任务列表"
-- "分成几步来做"
-- 任何 3 步以上的多步骤任务
+---
 
-也可以手动调用：`/task-manager`
+## 核心规矩（不多，就 5 条）
 
-### 快速开始
+| # | 规矩 | 为什么 |
+|:-:|:-----|:-------|
+| 1️⃣ | **完成带元数据** — `summary` + `filesModified` + `completedAt` | 以后回头看知道当时做了什么 |
+| 2️⃣ | **发现就记** — 不等做完再补，写进 metadata | 做到一半发现的坑，半小时后绝对忘 |
+| 3️⃣ | **做完查解锁** — 调一次 TaskList | 有可能你刚完成的那步解锁了新任务 |
+| 4️⃣ | **父任务最后关** — 子任务全做完才标 completed | 系统和视觉同步对齐，不精分 |
+| 5️⃣ | **划掉它** — 每次推进在回复里用删除线标进度 | 一目了然，还解压 |
 
-```javascript
-// 1. 建任务
-TaskCreate({ subject: '📦 项目', activeForm: '规划中' })
-TaskCreate({ subject: '  🅰️ 第一步', activeForm: '正在做A' })
-TaskCreate({ subject: '  🅱️ 第二步', activeForm: '正在做B' })
+---
 
-// 2. 设同级依赖（不依赖父任务）
-TaskUpdate({ taskId: '2', addBlockedBy: ['1'] })
+## 层级惯例
 
-// 3. 带元数据完成
-TaskUpdate({
-  taskId: '1',
-  status: 'completed',
-  metadata: {
-    summary: '调研完成',
-    filesModified: ['src/main.ts'],
-    completedAt: new Date().toISOString(),
-  },
-})
+```
+📦 父任务（无缩进）
+  🅰️ 子任务（2 空格缩进）
+    1. 孙任务（4 空格缩进）
+  🅱️ 子任务
 ```
 
-## 📐 层级惯例
+子任务之间用 `addBlockedBy` 控制顺序，但**不依赖父任务**。  
+父任务是"组织关系"，不是"门锁"。子任务不需要等父任务解锁才能开始。
 
-| 层级 | 缩进 | 示例 |
-|:----:|:----:|:-----|
-| 1️⃣ 父级 | 无缩进 | `📦 项目` |
-| 2️⃣ 子级 | 2 空格 | `  🅰️ 模块` |
-| 3️⃣ 孙级 | 4 空格 | `    1. 细项` |
+---
 
-**核心规则：** 父任务全程保持 `in_progress`，等所有子任务做完才标 `completed`——系统和视觉同步对齐。
+## 什么时候用它 / 什么时候不用
 
-## 📋 核心纪律
+✅ **用它**：3 步以上的多步骤任务、有依赖关系的任务、想让超超一眼看到进度的场景
 
-1. ✅ **完成必带元数据** — summary + filesModified + completedAt
-2. ✅ **发现即记录** — 不等做完再补，即时写入 metadata
-3. ✅ **做完查解锁** — 每完成一步调 TaskList() 看有没有解锁新任务
-4. ✅ **父任务最后完成** — 所有子任务做完才关父任务
-5. ✅ **视觉删除线标注** — 每次推进在回复里用删除线汇报进度
+❌ **不用**：1 步就能搞定的事、纯聊天探索、写一行代码就完活的小修改
 
-## 🔗 参考
+---
+
+## 参考 & 感谢
 
 - 基于 Claude Code 2.1.16+ 原生 Task 工具
-- 灵感来自 [oimiragieo/agent-studio](https://github.com/oimiragieo/agent-studio) 的 task-management-protocol
-- 和 [yonatangross/orchestkit](https://github.com/yonatangross/orchestkit) 的 task-dependency-patterns
+- 从 [oimiragieo/agent-studio](https://github.com/oimiragieo/agent-studio) 的 task-management-protocol 偷到了"发现即记录"的好习惯
+- [yonatangross/orchestkit](https://github.com/yonatangross/orchestkit) 的 task-dependency-patterns 启发了依赖链设计
+- 特别感谢超超——从亲密互动中发现了 task 更新不及时的问题，然后顺着问题一路捋出了一个完整的 skill 🦊💕
 
-## 📄 许可证
+---
 
-MIT — 自由使用、修改、分享。
+## License
+
+MIT — 随便用，随便改，随便分享。
